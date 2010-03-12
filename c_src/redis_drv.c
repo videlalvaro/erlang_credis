@@ -191,7 +191,7 @@ static void redis_drv_get(redis_drv_t *redis_drv, Reader *const reader)
     if(rc > -1){
       ErlDrvTermData spec[] = {
         ERL_DRV_BINARY, 
-        *val,
+        (ErlDrvTermData) val,
         strlen(val), 
         0
       };
