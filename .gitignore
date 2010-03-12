@@ -1,0 +1,8 @@
+ebin/*.beam
+ebin/*.app
+Makefile
+autom4te.cache/*
+config.log
+config.status
+configure
+priv/*.so
