@@ -57,7 +57,7 @@ smembers(Key)->
 
 handle_call({set, Key, Value}, _From, State)
   when is_binary(Key) and is_binary(Value) ->
-    Message = message(0, Key, Value),
+    Message = message(?CREDIS_SET, Key, Value),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
