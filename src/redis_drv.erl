@@ -117,7 +117,7 @@ message(Command, Key) ->
 message(Command, Key, Value) ->
   KeySize = size(Key),
   ValueSize = size(Value),
-  <<Command/native, KeySize:64/native, Key/binary, ValueSize:64/binary, Value/binary>>.
+  <<Command/native, KeySize:64/native, Key/binary, ValueSize:64/native, Value/binary>>.
     
 send_command(Port, Command) ->
     port_command(Port, Command),
