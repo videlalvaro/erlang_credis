@@ -31,7 +31,6 @@ start_link() ->
     
 init([]) ->
   SearchDir = filename:join([filename:dirname(code:which(?MODULE)), "..", "priv"]),
-  io:format("SearchDir: ~s~n", [SearchDir]),
   case erl_ddll:load(SearchDir, "redis_drv") of
     ok ->
       {ok, #state{port=open_port({spawn, ?DRIVER_NAME}, [binary])}};
