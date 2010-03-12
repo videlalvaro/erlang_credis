@@ -20,7 +20,7 @@
 -define(CREDIS_SMEMBERS, 5).
 
 -define(SERVER, ?MODULE).
--define('DRIVER_NAME', 'redis_drv').
+-define(DRIVER_NAME, "redis_drv").
 
 -record(state, {port}).
 
@@ -29,7 +29,8 @@ start_link() ->
     
 init([]) ->
   SearchDir = filename:join([filename:dirname(code:which(?MODULE)), "..", "priv"]),
-  case erl_ddll:load(SearchDir, atom_to_list(?DRIVER_NAME)) of
+  io:format("SearchDir: ~s~n", [SearchDir]),
+  case erl_ddll:load(SearchDir, "redis_drv") of
     ok ->
       {ok, #state{port=open_port({spawn, ?DRIVER_NAME}, [binary])}};
     Error ->
@@ -56,37 +57,37 @@ smembers(Key)->
 
 handle_call({set, Key, Value}, _From, State)
   when is_binary(Key) and is_binary(Value) ->
-    Message = message(CREDIS_SET, Key, Value),
+    Message = message(0, Key, Value),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
 handle_call({get, Key}, _From, State)
   when is_binary(Key) ->
-    Message = message(CREDIS_GET, Key),
+    Message = message(?CREDIS_GET, Key),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
 handle_call({del, Key}, _From, State)
   when is_binary(Key) ->
-    Message = message(CREDIS_DEL, Key),
+    Message = message(?CREDIS_DEL, Key),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
 handle_call({sadd, Key, Value}, _From, State)
   when is_binary(Key) and is_binary(Value)->
-    Message = message(CREDIS_SADD, Key, Value),
+    Message = message(?CREDIS_SADD, Key, Value),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
 handle_call({srem, Key, Value}, _From, State)
   when is_binary(Key) and is_binary(Value)->
-    Message = message(CREDIS_SREM, Key, Value),
+    Message = message(?CREDIS_SREM, Key, Value),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
 handle_call({smembers, Key}, _From, State)
   when is_binary(Key) ->
-    Message = message(CREDIS_SMEMBERS, Key),
+    Message = message(?CREDIS_SMEMBERS, Key),
     Reply = send_command(State#state.port, Message),
     {reply, Reply, State};
     
@@ -121,7 +122,7 @@ send_command(Port, Command) ->
     receive
       Data ->
         Data
-    after REC_TIMEOUT ->
+    after ?REC_TIMEOUT ->
       io:format("Received nothing!~n"),
       {error, timeout}
     end.

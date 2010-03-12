@@ -1,9 +1,14 @@
 #include "redis_drv.h"
+#include "config.h"
 
+#include <stdint.h>
 #include <string.h>
 
 //Taken from toke.c
 uint8_t redis_invalid_command = REDIS_INVALID_COMMAND;
+
+#define FALSE                  0
+#define TRUE                   1
 
 #define REDIS_DRV_ERROR 0
 #define REDIS_DRV_NIL   1
@@ -11,22 +16,15 @@ uint8_t redis_invalid_command = REDIS_INVALID_COMMAND;
 
 #define REDIS_DRV_OK 0
 
-char ok_msgs[] = {
-  "ok"
-};
-
-char error_msgs[] = {
-  "error",
-  "nil",
-  "unknown"
-};
-
-typedef struct {
-  ErlIOVec *ev;
-  size_t row;
-  size_t column;
-  ReaderError last_error;
-} Reader;
+// char ok_msgs[] = {
+//   'ok'
+// };
+// 
+// char error_msgs[] = {
+//   'error',
+//   'nil',
+//   'unknown'
+// };
 
 void make_reader(ErlIOVec *const ev, Reader *const reader) {
   reader->ev = ev;
@@ -124,12 +122,11 @@ static void outputv(ErlDrvData handle, ErlIOVec *ev) {
   const uint8_t* command = &redis_invalid_command;
   
   redis_drv_t* driver_data = (redis_drv_t*) handle;
-  ErlDrvBinary* data = ev->binv[1];
   
   make_reader(ev, &reader);
   
   if (read_uint8(&reader, &command)) {
-    switch(command) {
+    switch(*command) {
       case REDIS_SET:
         redis_drv_set(driver_data, &reader);
         break;
@@ -193,7 +190,10 @@ static void redis_drv_get(redis_drv_t *redis_drv, Reader *const reader)
     rc = credis_get(redis, key, &val);
     if(rc > -1){
       ErlDrvTermData spec[] = {
-        ERL_DRV_BINARY, val, strlen(val), 0
+        ERL_DRV_BINARY, 
+        *val,
+        strlen(val), 
+        0
       };
       driver_output_term(redis_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
     } else{
@@ -264,7 +264,7 @@ static void redis_drv_srem(redis_drv_t *redis_drv, Reader *const reader)
 static void redis_drv_smembers(redis_drv_t *redis_drv, Reader *const reader)
 {
   char **valv;
-  int rc;
+  int rc, max, i;
   
   REDIS redis = redis_drv->redis;
   
@@ -274,15 +274,16 @@ static void redis_drv_smembers(redis_drv_t *redis_drv, Reader *const reader)
   if(read_binary(reader, &key, &keysize)){
     rc = credis_smembers(redis, key, &valv);
     if(rc > 0){
-      ErlDrvTermData *p;
+      
+      max = rc*4;
 
-      ErlDrvTermData spec[rc*4+3];
-
-      for(p = spec[0]; p <= spec[rc*4]; p++){
-        *p = ERL_DRV_BINARY;
-        *p++ = valv[spec[rc+2] - p];
-        *p++ = strlen(valv[spec[rc+2] - p]);
-        *p++ = 0;
+      ErlDrvTermData spec[max+3];
+      
+      for (i = 0; i < rc; i++){
+        spec[i*4] = ERL_DRV_BINARY;
+        spec[i*4+1] = (ErlDrvTermData) valv[rc];
+        spec[i*4+2] = strlen(valv[rc]);
+        spec[i*4+3] = 0;
       }
 
       spec[rc+1] = ERL_DRV_NIL;
@@ -307,7 +308,7 @@ static void redis_drv_unknown(redis_drv_t *redis_drv)
 static void return_empty_list(redis_drv_t *redis_drv)
 {
   ErlDrvTermData spec[] = {
-      ERL_DRV_NIL, ERL_DRV_LIST, 1},
+      ERL_DRV_NIL, ERL_DRV_LIST, 1
   };
   
   driver_output_term(redis_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
@@ -316,7 +317,8 @@ static void return_empty_list(redis_drv_t *redis_drv)
 static void return_ok(redis_drv_t *redis_drv, int msgno)
 {
   ErlDrvTermData spec[] = {
-      ERL_DRV_ATOM, driver_mk_atom(ok_msgs[msgno]),
+      // ERL_DRV_ATOM, driver_mk_atom(ok_msgs[msgno]),
+      ERL_DRV_ATOM, driver_mk_atom("ok")
   };
   driver_output_term(redis_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
 }
@@ -324,19 +326,20 @@ static void return_ok(redis_drv_t *redis_drv, int msgno)
 static void return_error(redis_drv_t *redis_drv, int errorno)
 {
   ErlDrvTermData spec[] = {
-      ERL_DRV_ATOM, driver_mk_atom(error_msgs[errorno]),
+      // ERL_DRV_ATOM, driver_mk_atom(error_msgs[errorno]),
+      ERL_DRV_ATOM, driver_mk_atom("error")
   };
   driver_output_term(redis_drv->port, spec, sizeof(spec) / sizeof(spec[0]));
 }
 
-static ErlDrvEntry redis_drviver_entry = {
+static ErlDrvEntry redis_driver_entry = {
     NULL,                             /* init */
     start,                            /* startup */
     stop,                             /* shutdown */
     NULL,                             /* output */
     NULL,                             /* ready_input */
     NULL,                             /* ready_output */
-    "redis_drv",                     /* the name of the driver */
+    "redis_drv",                      /* the name of the driver */
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */
@@ -352,6 +355,6 @@ static ErlDrvEntry redis_drviver_entry = {
     ERL_DRV_FLAG_USE_PORT_LOCKING     /* ERL_DRV_FLAGs */
 };
 
-DRIVER_INIT(redis_drviver) {
-  return &redis_drviver_entry;
+DRIVER_INIT(redis_driver) {
+  return &redis_driver_entry;
 }

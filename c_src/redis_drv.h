@@ -6,19 +6,33 @@
 
 #include <credis.h>
 
-#define REDIS_INVALID_COMMAND = 255
-#define REDIS_SET             = 0
-#define REDIS_GET             = 1
-#define REDIS_DEL             = 2
-#define REDIS_SADD            = 3
-#define REDIS_SREM            = 4
-#define REDIS_SMEMBERS        = 5
+#define REDIS_INVALID_COMMAND 255
+#define REDIS_SET             0
+#define REDIS_GET             1
+#define REDIS_DEL             2
+#define REDIS_SADD            3
+#define REDIS_SREM            4
+#define REDIS_SMEMBERS        5
 
 typedef struct _redis_drv_t {
   ErlDrvPort port;
   
-  REDIS *redis;
+  REDIS redis;
 } redis_drv_t;
+
+enum _ReaderError {
+  READER_NO_ERROR = 0,
+  READER_READ_ALL_DATA = 1,
+  READER_PACKING_ERROR = 2
+};
+typedef enum _ReaderError ReaderError;
+
+typedef struct {
+  ErlIOVec *ev;
+  size_t row;
+  size_t column;
+  ReaderError last_error;
+} Reader;
 
 static ErlDrvData start(ErlDrvPort port, char* cmd);
 static void stop(ErlDrvData handle);
