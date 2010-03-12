@@ -1,0 +1,41 @@
+PACKAGE_NAME = @PACKAGE_NAME@
+PACKAGE_VERSION = @PACKAGE_VERSION@
+RELDIR = releases/$(PACKAGE_NAME)-$(PACKAGE_VERSION)
+
+ifeq ($(shell uname),Linux)
+	ARCH = linux
+else
+	ARCH = macosx
+endif
+
+all:
+	(cd c_src;$(MAKE))
+	(cd src;$(MAKE))
+
+clean:
+	(cd c_src;$(MAKE) clean)
+	(cd src;$(MAKE) clean)
+
+distclean: clean
+	rm -rf autom4te.cache config.log config.status
+	rm -f Makefile c/Makefile erl/Makefile
+
+install: all
+	(cd c_src; $(MAKE) install)
+	(cd src; $(MAKE) install)
+
+debug:
+	(cd c_src;$(MAKE) debug)
+	(cd src;$(MAKE) debug)
+
+release: all
+	mkdir -p $(RELDIR)
+	cp -r ebin $(RELDIR)/
+	cp -r priv $(RELDIR)/
+	mkdir -p $(RELDIR)/src
+	cp -r erl/*.erl $(RELDIR)/src/
+	cp -r c/*.c $(RELDIR)/src
+	cp -r c/*.h $(RELDIR)/src
+	sed s/?VERSION/$(PACKAGE_VERSION)/ releases/meg.rel > $(RELDIR)/meg.rel
+	sed s/?VERSION/$(PACKAGE_VERSION)/ ebin/meg.app > $(RELDIR)/ebin/meg.app
+	cd $(RELDIR); erl -pa ./ebin -eval "systools:make_script(\"meg\", [local])." -eval "systools:make_tar(\"meg\")." -s erlang halt
