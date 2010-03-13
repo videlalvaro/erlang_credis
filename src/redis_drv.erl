@@ -4,7 +4,7 @@
 
 -export([start_link/0]).
 
--export([set/2, get/1, del/1, sadd/2, srem/2, smembers/1]).
+-export([set/3, get/2, del/2, sadd/3, srem/3, smembers/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, code_change/3, 
   terminate/2]).
@@ -27,7 +27,8 @@
 -record(state, {port}).
 
 start_link() ->
-  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+  % gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+  gen_server:start_link(?MODULE, [], []).
     
 init([]) ->
   SearchDir = filename:join([filename:dirname(code:which(?MODULE)), "..", "priv"]),
@@ -38,23 +39,23 @@ init([]) ->
       Error
     end.
 
-set(Key, Value) ->
-  gen_server:call(?MODULE, {set, Key, Value}).
+set(Pid, Key, Value) ->
+  gen_server:call(Pid, {set, Key, Value}).
   
-get(Key) ->
-  gen_server:call(?MODULE, {get, Key}).
+get(Pid, Key) ->
+  gen_server:call(Pid, {get, Key}).
   
-del(Key) ->
-  gen_server:call(?MODULE, {del, Key}).
+del(Pid, Key) ->
+  gen_server:call(Pid, {del, Key}).
   
-sadd(Key, Value) ->
-  gen_server:call(?MODULE, {sadd, Key, Value}).
+sadd(Pid, Key, Value) ->
+  gen_server:call(Pid, {sadd, Key, Value}).
   
-srem(Key, Value)->
-  gen_server:call(?MODULE, {srem, Key, Value}).
+srem(Pid, Key, Value)->
+  gen_server:call(Pid, {srem, Key, Value}).
   
-smembers(Key)->
-  gen_server:call(?MODULE, {smembers, Key}).
+smembers(Pid, Key)->
+  gen_server:call(Pid, {smembers, Key}).
 
 handle_call({set, Key, Value}, _From, State)
   when is_binary(Key) and is_binary(Value) ->
